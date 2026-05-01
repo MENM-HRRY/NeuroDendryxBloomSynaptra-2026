@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, Languages, Keyboard, Info, Upload, Eraser, X, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Languages, Keyboard, Info, Upload, Eraser, X, FileText, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import html2canvas from 'html2canvas';
 import { questions as defaultQuestions, Question } from './data';
 
 export default function App() {
@@ -8,7 +9,9 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [customQuestions, setCustomQuestions] = useState<Question[] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
 
   // Upload Modal States
   const [hasExplanation, setHasExplanation] = useState(true);
@@ -18,6 +21,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   const activeQuestions = customQuestions || defaultQuestions;
+
+  const showCaptureButton = searchQuery === '¿';
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -32,12 +37,11 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const isFiltered = searchQuery.trim().length > 0;
+  const isFiltered = searchQuery.trim().length > 0 && searchQuery !== '¿';
 
   const normalizeText = (text: string) =>
     text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-  // Resalta las coincidencias de búsqueda en el texto
   const highlight = (text: string) => {
     if (!isFiltered) return text;
     const query = normalizeText(searchQuery);
@@ -67,6 +71,42 @@ export default function App() {
       return enMatch || esMatch;
     });
   }, [searchQuery, activeQuestions]);
+
+  const handleCapture = async () => {
+    if (!mainRef.current || isCapturing) return;
+    setIsCapturing(true);
+    try {
+      const canvas = await html2canvas(mainRef.current, {
+        backgroundColor: '#0a0a0a',
+        scale: 2,
+        useCORS: true,
+        scrollY: 0,
+        windowWidth: mainRef.current.scrollWidth,
+        windowHeight: mainRef.current.scrollHeight,
+        width: mainRef.current.scrollWidth,
+        height: mainRef.current.scrollHeight,
+      });
+
+      // Agregar margen de ~8px alrededor
+      const margin = 16;
+      const final = document.createElement('canvas');
+      final.width = canvas.width + margin * 2;
+      final.height = canvas.height + margin * 2;
+      const ctx = final.getContext('2d')!;
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, final.width, final.height);
+      ctx.drawImage(canvas, margin, margin);
+
+      const link = document.createElement('a');
+      link.download = `reagents-${Date.now()}.png`;
+      link.href = final.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('Capture error:', err);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
 
   const parseFile = async (file: File, useExplanation: boolean) => {
     const text = await file.text();
@@ -150,7 +190,7 @@ export default function App() {
 
                 {/* LOAD — orbita por ARRIBA */}
                 <AnimatePresence>
-                  {!customQuestions && (
+                  {!customQuestions && !showCaptureButton && (
                     <motion.button
                       key="load-btn"
                       onClick={() => { setIsModalOpen(true); setSearchQuery(''); }}
@@ -162,6 +202,27 @@ export default function App() {
                     >
                       <Upload className="w-5 h-5" />
                       <span className="text-[10px] font-bold mt-1">LOAD</span>
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+
+                {/* CAPTURE — aparece al escribir ¿ */}
+                <AnimatePresence>
+                  {showCaptureButton && (
+                    <motion.button
+                      key="capture-btn"
+                      onClick={handleCapture}
+                      disabled={isCapturing}
+                      initial={{ opacity: 0, scale: 0.5, rotate: -20 }}
+                      animate={{ opacity: 1, scale: 1,   rotate: 0    }}
+                      exit={{    opacity: 0, scale: 0.5, rotate: -20  }}
+                      transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                      className="flex flex-col items-center justify-center px-6 py-2 rounded-2xl border-2 border-cyan-900 bg-cyan-950/30 text-cyan-400 hover:bg-cyan-900/40 hover:border-cyan-600 transition-all duration-300 min-w-[100px] disabled:opacity-50"
+                    >
+                      <Camera className="w-5 h-5" />
+                      <span className="text-[10px] font-bold mt-1">
+                        {isCapturing ? '...' : 'CAPTURE'}
+                      </span>
                     </motion.button>
                   )}
                 </AnimatePresence>
@@ -188,7 +249,7 @@ export default function App() {
 
                 {/* CLEAR — orbita por ABAJO */}
                 <AnimatePresence>
-                  {customQuestions && (
+                  {customQuestions && !showCaptureButton && (
                     <motion.button
                       key="clear-btn"
                       onClick={handleReset}
@@ -210,8 +271,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      {/* Main Content — ref para captura */}
+      <main ref={mainRef} className="max-w-5xl mx-auto px-4 py-8">
         <div className="space-y-6">
           <AnimatePresence mode="popLayout">
             {filteredQuestions.map((q) => {
@@ -226,7 +287,6 @@ export default function App() {
                   transition={{ duration: 0.2 }}
                   className="group rounded-xl overflow-hidden border border-gray-800 bg-[#111] shadow-xl"
                 >
-                  {/* Question Row */}
                   <div className={`p-5 transition-colors duration-300 ${isFiltered ? 'bg-[#450a0a] text-white' : 'bg-[#1a1a1a] text-gray-200'}`}>
                     <div className="flex gap-4">
                       <span className="text-sm font-mono opacity-50 shrink-0">#{q.id.toString().padStart(2, '0')}</span>
@@ -236,7 +296,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Answer & Explanation */}
                   <div className="p-5 space-y-4">
                     <div className="space-y-1">
                       <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">
@@ -267,7 +326,7 @@ export default function App() {
             })}
           </AnimatePresence>
 
-          {filteredQuestions.length === 0 && (
+          {filteredQuestions.length === 0 && searchQuery !== '¿' && (
             <div className="text-center py-20">
               <Search className="w-12 h-12 text-gray-800 mx-auto mb-4" />
               <p className="text-gray-500">
