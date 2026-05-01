@@ -37,7 +37,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const isFiltered = searchQuery.trim().length > 0 && searchQuery !== '?';
+  const isFiltered = searchQuery.trim().length > 0 && searchQuery !== '¿';
 
   const normalizeText = (text: string) =>
     text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
