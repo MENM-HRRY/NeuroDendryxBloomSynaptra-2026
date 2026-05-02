@@ -21,7 +21,6 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   const activeQuestions = customQuestions || defaultQuestions;
-
   const showCaptureButton = searchQuery === '?';
 
   // Keyboard shortcuts
@@ -72,30 +71,39 @@ export default function App() {
     });
   }, [searchQuery, activeQuestions]);
 
+  // ── handleCapture con crop exacto lado derecho ───────────────────
   const handleCapture = async () => {
     if (!mainRef.current || isCapturing) return;
     setIsCapturing(true);
     try {
-      const canvas = await html2canvas(mainRef.current, {
+      const el = mainRef.current;
+      const rect = el.getBoundingClientRect();
+
+      const canvas = await html2canvas(el, {
         backgroundColor: '#0a0a0a',
         scale: 2,
         useCORS: true,
+        scrollX: 0,
         scrollY: 0,
-        windowWidth: mainRef.current.scrollWidth,
-        windowHeight: mainRef.current.scrollHeight,
-        width: mainRef.current.scrollWidth,
-        height: mainRef.current.scrollHeight,
+        width: Math.round(rect.width),
+        height: Math.round(el.scrollHeight),
+        windowWidth: document.documentElement.clientWidth,
+        windowHeight: document.documentElement.clientHeight,
       });
 
-      // Agregar margen de ~8px alrededor
-      const margin = 16;
+      // Crop exacto al ancho real del elemento × scale
+      const targetW = Math.round(rect.width) * 2;
+      const targetH = Math.round(el.scrollHeight) * 2;
+      const margin = 12;
+
       const final = document.createElement('canvas');
-      final.width = canvas.width + margin * 2;
-      final.height = canvas.height + margin * 2;
+      final.width  = targetW + margin * 2;
+      final.height = targetH + margin * 2;
       const ctx = final.getContext('2d')!;
       ctx.fillStyle = '#0a0a0a';
       ctx.fillRect(0, 0, final.width, final.height);
-      ctx.drawImage(canvas, margin, margin);
+      // Recorta solo los píxeles del elemento, descarta espacio extra derecho
+      ctx.drawImage(canvas, 0, 0, targetW, targetH, margin, margin, targetW, targetH);
 
       const link = document.createElement('a');
       link.download = `reagents-${Date.now()}.png`;
@@ -107,6 +115,7 @@ export default function App() {
       setIsCapturing(false);
     }
   };
+  // ────────────────────────────────────────────────────────────────
 
   const parseFile = async (file: File, useExplanation: boolean) => {
     const text = await file.text();
@@ -206,7 +215,7 @@ export default function App() {
                   )}
                 </AnimatePresence>
 
-                {/* CAPTURE — aparece al escribir ¿ */}
+                {/* CAPTURE — aparece al escribir ? */}
                 <AnimatePresence>
                   {showCaptureButton && (
                     <motion.button
@@ -271,9 +280,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content — ref para captura */}
-      <main ref={mainRef} className="max-w-5xl mx-auto px-4 py-8">
-        <div className="space-y-6">
+      {/* Main Content */}
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        {/* ref en el div interno — captura solo las tarjetas */}
+        <div ref={mainRef} className="space-y-6">
           <AnimatePresence mode="popLayout">
             {filteredQuestions.map((q) => {
               const content = q[language] || q.en;
@@ -453,3 +463,4 @@ export default function App() {
     </div>
   );
 }
+
