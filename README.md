@@ -52,6 +52,14 @@ https://github.com/user-attachments/assets/ee9345fd-681b-4c7a-8d14-cc66b94acc7b
 *   **Aplicación en vivo:** [https://maxenocmn.github.io/Reagen_Banks/](https://maxenocmn.github.io/Reagen_Banks/)
 *   **Reportar un error:** Abre un "Issue" en este repositorio.
 
+> [!TIP]
+>¿Quieres capturar todas las preguntas de una vez?
+> En la barra de búsqueda, escribe el signo de interrogación cerrado: ?
+>
+> Esto activará el botón Scroll Capture.Podrás generar una imagen PNG con todos los reactivos para analizarlos cómodamente desde la app Papyrus.
+
+> https://maxenocmn.github.io/FocusStudy_ScrollCapture/
+
 ---
 
 ##  Agradecimientos y Cierre
