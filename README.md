@@ -60,6 +60,11 @@ https://github.com/user-attachments/assets/ee9345fd-681b-4c7a-8d14-cc66b94acc7b
 
 > https://maxenocmn.github.io/FocusStudy_ScrollCapture/
 
+
+
+https://github.com/user-attachments/assets/ba90db6c-dd38-4707-8dff-335494e7ef8e
+
+
 ---
 
 ##  Agradecimientos y Cierre
